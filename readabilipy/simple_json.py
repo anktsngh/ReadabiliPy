@@ -10,14 +10,20 @@ from .extractors import extract_date, extract_title
 from .simplifiers import normalise_text
 
 
-def simple_json_from_html_string(html, content_digests=False, node_indexes=False, use_readability=False):
-    if use_readability:
-        temp_dir = tempfile.gettempdir()
-        # Write input HTML to temporary file so it is available to the node.js script
-        html_path = os.path.join(temp_dir, "full.html")
-        with open(html_path, 'w') as f:
-            f.write(html)
+def simple_json_from_html_string(html, content_digests=False, node_indexes=False, force_readability=False):
+    temp_dir = tempfile.gettempdir()
+    # Write input HTML to temporary file so it is available to the node.js script
+    html_path = os.path.join(temp_dir, "full.html")
+    with open(html_path, 'w') as f:
+        f.write(html)
 
+    # Call Mozilla's Readability-readerable.js isProbablyReaderable function via node to check if html is readerable
+    readerability_script_path = os.path.join(os.path.dirname(__file__), "..",  "javascript", "IsReaderable.js")
+    check_call(["node", readerability_script_path, "-i", html_path, "-o", os.path.join(temp_dir, "bool_file")], shell=False)
+    with open(os.path.join(temp_dir, "bool_file")) as f:
+        readerability_bool = json.loads(f.read())
+
+    if readerability_bool or force_readability:
         # Call Mozilla's Readability.js Readability.parse() function via node, writing output to a temporary file
         article_json_path = os.path.join(temp_dir, "article.json")
         parse_script_path = os.path.join(os.path.dirname(__file__), "..", "javascript", "ExtractArticle.js")
@@ -81,7 +87,7 @@ def extract_text_blocks_as_plain_text(paragraph_html):
 
 def plain_text_leaf_node(element):
     # Extract all text, stripped of any child HTML elements and normalise it
-    plain_text = normalise_text(element.get_text())
+    plain_text = normalise_text(element.get_text(separator=' '))
     if plain_text != "" and element.name == "li":
         plain_text = "* {}, ".format(plain_text)
     if plain_text == "":
@@ -121,7 +127,7 @@ def plain_element(element, content_digests, node_indexes):
     if is_leaf(element):
         # For leaf node elements, extract the text content, discarding any HTML tags
         # 1. Get element contents as text
-        plain_text = element.get_text()
+        plain_text = element.get_text(separator=' ')
         # 2. Normalise the extracted text string to a canonical representation
         plain_text = normalise_text(plain_text)
         # 3. Update element content to be plain text

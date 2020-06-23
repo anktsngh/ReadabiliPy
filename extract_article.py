@@ -14,8 +14,10 @@ def main():
                         help="Add a 'data-content-digest' attribute containing a SHA256-based digest of the element's contents to each HTML element in the plain_content output.")
     parser.add_argument('-n', '--node-indexes', action='store_true',
                         help="Add a 'data-node-index' attribute containing a hierarchical representation of the element's position in the HTML structure each HTML element in the plain_content output.")
-    parser.add_argument('-p', '--use-python-parser', action='store_true',
-                        help="Use the pure-python 'plain_html' parser included in this project rather than Mozilla's Readability.js.")
+    parser.add_argument('-f', '--force-readability', action='store_true',
+                        help="Force Mozilla's Readability rather than Auto Mode.**")
+
+    # ** Auto Mode uses Mozilla's IsReaderable.js to determine if the webpage can be properly decluttered using Mozilla's Readability.js. If IsReaderable returns False, automatically switch to Python based parser.
 
     args = parser.parse_args()
 
@@ -23,7 +25,7 @@ def main():
         html = h.read()
 
     article = simple_json_from_html_string(html, content_digests=args.content_digests,
-                                           node_indexes=args.node_indexes, use_readability=(not args.use_python_parser))
+                                           node_indexes=args.node_indexes, force_readability=(not args.force_readability))
 
     with open(args.output_file, "w") as j:
         json.dump(article, j, ensure_ascii=False)
