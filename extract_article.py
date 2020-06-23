@@ -25,7 +25,7 @@ def main():
         html = h.read()
 
     article = simple_json_from_html_string(html, content_digests=args.content_digests,
-                                           node_indexes=args.node_indexes, force_readability=(not args.force_readability))
+                                           node_indexes=args.node_indexes, force_readability=(args.force_readability))
 
     with open(args.output_file, "w") as j:
         json.dump(article, j, ensure_ascii=False)
